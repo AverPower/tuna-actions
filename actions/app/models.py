@@ -6,7 +6,7 @@ from pydantic import UUID4, BaseModel
 class UserAction(BaseModel):
     user_id: UUID4
     timestamp: datetime
-    context: dict
+    context: dict = None
 
 class TrackAction(UserAction):
     track_id: UUID4

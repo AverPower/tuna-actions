@@ -9,7 +9,7 @@ from .consumer import ActionKafkaConsumer
 from .topic_manage import add_topics
 
 load_dotenv(".env")
-topics = os.getenv("DEFAULT_TOPICS")
+topics = os.getenv("DEFAULT_TOPICS").split(",")
 
 app = FastAPI()
 
