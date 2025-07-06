@@ -1,30 +1,22 @@
+import os
 from threading import Thread
 
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from kafka import KafkaConsumer
+from .consumer import ActionKafkaConsumer
+from .topic_manage import add_topics
 
-consumer = KafkaConsumer(
-    "actions",
-    bootstrap_servers=["localhost:9094"],
-    auto_offset_reset="earliest",
-#    group_id="group-id",  # TODO CHANGE GROUP ID
-)
-
-
-def consumer_run(consumer: KafkaConsumer):
-    try:
-        for message in consumer:
-            print(message.value)
-    except Exception as err:
-        print(err)
-
+load_dotenv(".env")
+topics = os.getenv("DEFAULT_TOPICS")
 
 app = FastAPI()
 
 
 if __name__ == "__main__":
-    consumer_thread = Thread(target=consumer_run, args=(consumer))
+    add_topics(topics)
+    consumer = ActionKafkaConsumer(topics)
+    consumer_thread = Thread(target=consumer.run, daemon=True)
     consumer_thread.start()
     uvicorn.run(app, host="0.0.0.0", port=8000)
