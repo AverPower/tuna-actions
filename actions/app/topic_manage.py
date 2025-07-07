@@ -1,7 +1,11 @@
+import logging
 from argparse import ArgumentParser
 
 from kafka import KafkaAdminClient
 from kafka.admin import NewTopic
+
+logger = logging.getLogger(__name__)
+
 
 DEFAULT_NUM_PARTITIONS = 3
 DEFAULT_REPLICATION_FACTOR = 3
@@ -32,9 +36,9 @@ def add_topics(topic_names: list[str]) -> None:
         new_topics.append(new_topic)
     try:
         admin_client.create_topics(new_topics)
-
-    except Exception as e:
-        print(f"Ошибка: {e}")
+    except Exception as err:
+        _msg = f"Error with creating topics {topic_names}: {err}"
+        logger.error(_msg)
     finally:
         admin_client.close()
 

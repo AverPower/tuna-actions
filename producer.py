@@ -26,12 +26,14 @@ ads = [uuid4() for _ in range(100)]
 
 while True:
     topic = str(choice(topics))
+    action_id = str(uuid4())
     track = str(choice(tracks))
     ad = str(choice(ads))
     user = str(choice(users))
     playlist = str(choice(playlists))
     duration = choice(range(1, 60))
     message = {
+        "action_id": action_id,
         "user_id": user,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "duration": duration,
@@ -53,5 +55,6 @@ while True:
         case _:
             continue
 
-    producer.send(topic=topic, value=json.dumps(message), key=user)
+    producer.send(topic=topic, value=json.dumps(message).encode("utf-8"), key=user.encode("utf-8"))
+    print(f"Sent {action_id} message for topic {topic}")
     sleep(1)

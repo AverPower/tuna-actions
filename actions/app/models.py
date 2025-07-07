@@ -5,7 +5,8 @@ from typing import Optional
 from pydantic import UUID4, BaseModel, field_serializer
 
 
-class UserAction(BaseModel):
+class BaseAction(BaseModel):
+    action_id: UUID4
     user_id: UUID4
     timestamp: datetime
     context: dict = None
@@ -25,7 +26,7 @@ class TrackEventType(str, Enum):
     remove_from_playlist = "remove_from_playlist"
 
 
-class TrackEvent(UserAction):
+class TrackEvent(BaseAction):
     action_type: TrackEventType
     track_id: UUID4
     recommended: bool = False
@@ -38,7 +39,7 @@ class AdEventType(str, Enum):
     pause = "pause"
 
 
-class AdEvent(UserAction):
+class AdEvent(BaseAction):
     action_type: AdEventType
     duration: Optional[int] = None
     # clicked: Optional[bool] = None
