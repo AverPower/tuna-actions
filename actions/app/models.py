@@ -1,6 +1,8 @@
 from datetime import datetime
+from enum import Enum
+from typing import Optional
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, field_serializer
 
 
 class UserAction(BaseModel):
@@ -8,33 +10,35 @@ class UserAction(BaseModel):
     timestamp: datetime
     context: dict = None
 
-class TrackAction(UserAction):
+    @field_serializer("timestamp")
+    def serialize_timestamp(self, ts: datetime) -> str:
+        return ts.strftime("%Y-%m-%d %H:%M:%S")
+
+
+class TrackEventType(str, Enum):
+    play = "play"
+    pause = "pause"
+    skip = "skip"
+    like = "like"
+    dislike = "dislike"
+    add_to_playlist = "add_to_playlist"
+    remove_from_playlist = "remove_from_playlist"
+
+
+class TrackEvent(UserAction):
+    action_type: TrackEventType
     track_id: UUID4
     recommended: bool = False
+    playlist_id: Optional[UUID4] = None
+    duration: Optional[int] = None
 
 
-class SkipTrackEvent(TrackAction):
-    ...
-
-class LikeTrackEvent(TrackAction):
-    like: bool
+class AdEventType(str, Enum):
+    play = "play"
+    pause = "pause"
 
 
-class PlaylistAddTrackEvent(TrackAction):
-    playlist_id: UUID4
-
-
-class SearchEvent(UserAction):
-    search_line: dict
-
-class SearchClickEvent(TrackAction):
-    search_line: dict
-    search_response: int
-
-class AdvertismentStartEvent(UserAction):
-    ad_id: UUID4
-
-class AdvertismentFinishEvent(UserAction):
-    ad_id: UUID4
-
-
+class AdEvent(UserAction):
+    action_type: AdEventType
+    duration: Optional[int] = None
+    # clicked: Optional[bool] = None
