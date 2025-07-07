@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from random import choice
+from random import choice, choices
 from time import sleep
 from uuid import uuid4
 
@@ -25,7 +25,7 @@ playlists = [uuid4() for _ in range(100)]
 ads = [uuid4() for _ in range(100)]
 
 while True:
-    topic = str(choice(topics))
+    topic = str(choices(topics, cum_weights=(4, 1), k=1)[0])
     action_id = str(uuid4())
     track = str(choice(tracks))
     ad = str(choice(ads))
