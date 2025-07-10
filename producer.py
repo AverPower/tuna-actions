@@ -35,7 +35,7 @@ while True:
     message = {
         "action_id": action_id,
         "user_id": user,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "action_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "duration": duration,
     }
     match topic:

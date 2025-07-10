@@ -7,13 +7,13 @@ from pydantic import UUID4, BaseModel, field_serializer
 
 class BaseAction(BaseModel):
     action_id: UUID4
+    action_time: datetime
     user_id: UUID4
-    timestamp: datetime
-    context: dict = None
+    # context: dict = None
 
-    @field_serializer("timestamp")
-    def serialize_timestamp(self, ts: datetime) -> str:
-        return ts.strftime("%Y-%m-%d %H:%M:%S")
+    # @field_serializer("action_time")
+    # def serialize_timestamp(self, ts: datetime) -> str:
+    #     return ts.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TrackEventType(str, Enum):
