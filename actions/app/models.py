@@ -11,10 +11,6 @@ class BaseAction(BaseModel):
     user_id: UUID4
     # context: dict = None
 
-    # @field_serializer("action_time")
-    # def serialize_timestamp(self, ts: datetime) -> str:
-    #     return ts.strftime("%Y-%m-%d %H:%M:%S")
-
 
 class TrackEventType(str, Enum):
     play = "play"
@@ -41,5 +37,6 @@ class AdEventType(str, Enum):
 
 class AdEvent(BaseAction):
     action_type: AdEventType
+    ad_id: UUID4
     duration: Optional[int] = None
     # clicked: Optional[bool] = None

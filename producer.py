@@ -25,7 +25,7 @@ playlists = [uuid4() for _ in range(100)]
 ads = [uuid4() for _ in range(100)]
 
 while True:
-    topic = str(choices(topics, cum_weights=(4, 1), k=1)[0])
+    topic = str(choices(topics, weights=(70, 30), k=1)[0])
     action_id = str(uuid4())
     track = str(choice(tracks))
     ad = str(choice(ads))

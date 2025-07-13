@@ -8,7 +8,10 @@ import yaml
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from .consumer import ActionKafkaConsumer, AdHandler, TrackHandler
+from kafka import KafkaConsumer
+
+from .processor import ActionProcessor, AdHandler, TrackHandler
+from .storage import ClickHouseStorage
 from .topic_manage import add_topics
 
 BASE_DIR = Path(__name__).parent
@@ -16,7 +19,6 @@ ENV_DIR = BASE_DIR / ".env"
 LOG_CONFIG_DIR = BASE_DIR / "logging_config.yml"
 
 load_dotenv(ENV_DIR)
-topics = os.getenv("DEFAULT_TOPICS").split(",")
 
 
 with LOG_CONFIG_DIR.open("r") as log_fin:
@@ -29,11 +31,24 @@ app = FastAPI()
 
 
 if __name__ == "__main__":
+    topics = os.getenv("DEFAULT_TOPICS").split(",")
     add_topics(topics)
-    consumer = ActionKafkaConsumer(topics)
-    handlers = [TrackHandler("track"), AdHandler("ad")]
+    consumer = KafkaConsumer(
+            *topics,
+            bootstrap_servers=["localhost:9094"],
+            auto_offset_reset="earliest",
+            enable_auto_commit=True,
+            auto_commit_interval_ms=1000,
+        )
+    handlers = [
+        TrackHandler(topic_name="track", table_name="tracks"),
+        AdHandler(topic_name="ad", table_name="ads"),
+    ]
+    clickhouse_storage = ClickHouseStorage(host="localhost", db_name="actions")
+    clickhouse_storage.create_tables()
+    action_processor = ActionProcessor(consumer=consumer, storage=clickhouse_storage)
     for handler in handlers:
-        consumer.register_handler(handler)
-    consumer_thread = Thread(target=consumer.run, daemon=True)
-    consumer_thread.start()
+        action_processor.register_handler(handler)
+    process_thread = Thread(target=action_processor.run, daemon=True)
+    process_thread.start()
     uvicorn.run(app, host="0.0.0.0", port=8000)

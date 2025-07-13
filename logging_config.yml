@@ -26,11 +26,11 @@ loggers:
     level: INFO
     handlers: [console, file_handler]
     propagate: false
-  consumer:
+  processor:
     level: INFO
     handlers: [console, file_handler]
     propagate: false
-  db:
+  storage:
     level: INFO
     handlers: [console, file_handler]
     propagate: false
