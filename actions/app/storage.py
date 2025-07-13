@@ -85,14 +85,88 @@ class ClickHouseStorage(Storage):
         _msg = f"TABLE CREATION {result}"
         logger.debug(_msg)
 
+    def get_poular_tracks(self, days: int):
+        query = """
+        SELECT
+            track_id,
+            count() as play_count
+        FROM tracks
+        WHERE action_type = 'play'
+        AND action_time >= now() - interval %(days)s day
+        GROUP BY track_id
+        ORDER BY play_count DESC
+        LIMIT 10;
+        """
+        try:
+            rows = self.client.execute(
+                query,
+                {"days": days}
+            )
+        except Exception as err:
+            _msg = f"Get poular tracks error {err}"
+            logger.error(_msg)
+            rows = None
+        finally:
+            return rows
+
+    def get_track_stats(self, track_id: str):
+        query = """
+        SELECT
+            count() as total_plays,
+            avg(duration) as avg_duration,
+            uniq(user_id) as unique_users
+        FROM tracks
+        WHERE track_id = %(track_id)s
+        """
+        try:
+            rows = self.client.execute(
+                query,
+                {"track_id": track_id}
+            )
+        except Exception as err:
+            _msg = f"Get track stats error {err}"
+            logger.error(_msg)
+            rows = None
+        finally:
+            return rows
+
+    def get_user_top_tracks(self, user_id: str, limit: int):
+        query = """
+        SELECT 
+            ptrack_id,
+            count() as plays
+        FROM tracks
+        WHERE user_id = %(user_id)s
+        GROUP BY track_id
+        ORDER BY plays DESC
+        LIMIT %(limit)s
+        """
+
+        try:
+            rows = self.client.execute(
+                query,
+                {"user_id": user_id, "limit": limit}
+            )
+        except Exception as err:
+            _msg = f"Get user top tracks error {err}"
+            logger.error(_msg)
+            rows = None
+        finally:
+            return rows
 
     def select_all(self):
-        print(self.client.execute("SELECT COUNT(*) FROM tracks"))
+        print(self.client.execute("SELECT uniq(user_id) FROM tracks"))
         print(self.client.execute("SELECT COUNT(*) FROM ads"))
+
+
+
+def get_db_client() -> ClickHouseStorage:
+    return ClickHouseStorage(host="localhost", db_name="actions")
+
 
 if __name__ == "__main__":
     try:
-        db = ClickHouseStorage(host="localhost", db_name="actions")
+        db = get_db_client()
         db.select_all()
     except Exception as err:
         print(err)

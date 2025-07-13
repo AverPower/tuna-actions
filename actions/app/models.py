@@ -2,14 +2,13 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import UUID4, BaseModel, field_serializer
+from pydantic import UUID4, BaseModel
 
 
 class BaseAction(BaseModel):
     action_id: UUID4
     action_time: datetime
     user_id: UUID4
-    # context: dict = None
 
 
 class TrackEventType(str, Enum):
@@ -39,4 +38,15 @@ class AdEvent(BaseAction):
     action_type: AdEventType
     ad_id: UUID4
     duration: Optional[int] = None
-    # clicked: Optional[bool] = None
+
+
+class PopularTrack(BaseModel):
+    track_id: UUID4
+    play_count: int
+
+class TrackStat(BaseModel):
+    track_id: UUID4
+    total_plays : int
+    avg_duration: int
+    unique_users: int
+
