@@ -7,20 +7,23 @@ from uuid import UUID
 import uvicorn
 import yaml
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Query, HTTPException
-
+from fastapi import Depends, FastAPI, HTTPException, Query
 from kafka import KafkaConsumer
-
-from .models import PopularTrack, TrackStat
-from .processor import ActionProcessor, AdHandler, TrackHandler
-from .storage import Storage, get_db_client
-from .topic_manage import add_topics
+from models import PopularTrack, TrackStat
+from processor import ActionProcessor, AdHandler, TrackHandler
+from storage import Storage, get_db_client
+from topic_manage import add_topics
 
 BASE_DIR = Path(__name__).parent
 ENV_DIR = BASE_DIR / ".env"
 LOG_CONFIG_DIR = BASE_DIR / "logging_config.yml"
 
 load_dotenv(ENV_DIR)
+
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka-0:9092,kafka-1:9092,kafka-2:9092").split(",")
+
+CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "clickhouse-node1")
+CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT", "9000"))
 
 
 with LOG_CONFIG_DIR.open("r") as log_fin:
@@ -79,10 +82,10 @@ def get_user_top_tracks(
 
 if __name__ == "__main__":
     topics = os.getenv("DEFAULT_TOPICS").split(",")
-    add_topics(topics)
+    add_topics(KAFKA_BOOTSTRAP_SERVERS, topics)
     consumer = KafkaConsumer(
         *topics,
-        bootstrap_servers=["localhost:9094"],
+        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
         auto_offset_reset="earliest",
         enable_auto_commit=True,
         auto_commit_interval_ms=1000,

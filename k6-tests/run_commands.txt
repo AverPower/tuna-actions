@@ -1,0 +1,1 @@
+k6 run --vus 100 --duration 5m api_test.js --out html=report.html

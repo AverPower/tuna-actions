@@ -1,7 +1,12 @@
 import logging
+import os
 from abc import ABC, abstractmethod
 
 from clickhouse_driver import Client
+
+DEFAULT_CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST")
+DEFAULT_CLICKHOUSE_PORT = os.getenv("CLICKHOUSE_PORT")
+DEFAULT_CLICKHOUSE_DB = os.getenv("CLICKHOUSE_DB")
 
 logger = logging.getLogger(__name__)
 
@@ -9,7 +14,7 @@ logger = logging.getLogger(__name__)
 class Storage(ABC):
 
     @abstractmethod
-    def __init__(self, host: str, db_name: str) -> None:
+    def __init__(self, host: str, db_name: str, port: str) -> None:
         ...
 
     @abstractmethod
@@ -18,8 +23,10 @@ class Storage(ABC):
 
 
 class ClickHouseStorage(Storage):
-    def __init__(self, host: str, db_name: str) -> None:
-        self.client = Client(host=host, database=db_name)
+    def __init__(self, host: str, db_name: str, port: str) -> None:
+        self.client = Client(host=host, port=port)
+        self.create_db()
+        self.client = Client(host=host, database=db_name, port=port)
 
     def insert_row(self, data: dict, table_name: str) -> None:
         columns = ", ".join(data.keys())
@@ -161,7 +168,11 @@ class ClickHouseStorage(Storage):
 
 
 def get_db_client() -> ClickHouseStorage:
-    return ClickHouseStorage(host="localhost", db_name="actions")
+    return ClickHouseStorage(
+        host=DEFAULT_CLICKHOUSE_HOST,
+        port=DEFAULT_CLICKHOUSE_PORT,
+        db_name=DEFAULT_CLICKHOUSE_DB
+        )
 
 
 if __name__ == "__main__":

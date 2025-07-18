@@ -3,9 +3,8 @@ import logging
 from abc import ABC, abstractmethod
 
 from kafka import KafkaConsumer
-
-from .models import AdEvent, TrackEvent
-from .storage import Storage
+from models import AdEvent, TrackEvent
+from storage import Storage
 
 logger = logging.getLogger(__name__)
 

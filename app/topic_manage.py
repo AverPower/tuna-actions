@@ -1,4 +1,5 @@
 import logging
+import os
 from argparse import ArgumentParser
 
 from kafka import KafkaAdminClient
@@ -14,15 +15,11 @@ DEFAULT_TOPIC_CONFIG = {
     "cleanup.policy": "delete"
 }
 
-bootstrap_servers = "localhost:9094"
-
-admin_client = KafkaAdminClient(
-    bootstrap_servers=bootstrap_servers,
-    client_id="my_admin"
-)
-
-
-def add_topics(topic_names: list[str]) -> None:
+def add_topics(servers: list[str], topic_names: list[str]) -> None:
+    admin_client = KafkaAdminClient(
+        bootstrap_servers=servers,
+        client_id="my_admin"
+    )
     existing_topics = set(admin_client.list_topics())
     new_topics_names = set(topic_names).difference(existing_topics)
     new_topics = []
