@@ -70,7 +70,7 @@ def get_track_stats(track_id: UUID, db: Storage = Depends(get_db_client)) -> Tra
     tags=["Tracks"]
 )
 def get_user_top_tracks(
-    user_id: int,
+    user_id: UUID,
     limit: int = Query(5, le=50),
     db: Storage = Depends(get_db_client)
 ) -> list[PopularTrack]:

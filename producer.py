@@ -57,4 +57,4 @@ while True:
 
     producer.send(topic=topic, value=json.dumps(message).encode("utf-8"), key=user.encode("utf-8"))
     print(f"Sent {action_id} message for topic {topic}")
-    sleep(1)
+    sleep(0.1)

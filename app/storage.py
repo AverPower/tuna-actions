@@ -120,10 +120,11 @@ class ClickHouseStorage(Storage):
         query = """
         SELECT
             count() as total_plays,
-            avg(duration) as avg_duration,
+            toInt32(avg(duration)) as avg_duration,
             uniq(user_id) as unique_users
         FROM tracks
         WHERE track_id = %(track_id)s
+            AND action_type = 'play'
         """
         try:
             rows = self.client.execute(
@@ -139,8 +140,8 @@ class ClickHouseStorage(Storage):
 
     def get_user_top_tracks(self, user_id: str, limit: int):
         query = """
-        SELECT 
-            ptrack_id,
+        SELECT
+            track_id,
             count() as plays
         FROM tracks
         WHERE user_id = %(user_id)s
