@@ -64,8 +64,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka-0:9092
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - KAFKA_CLUSTERS_0_NAME=kraft
+    networks:
+      - kafka-net
 
   zookeeper:
     image: zookeeper:3.8

@@ -20,10 +20,10 @@ LOG_CONFIG_DIR = BASE_DIR / "logging_config.yml"
 
 load_dotenv(ENV_DIR)
 
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka-0:9092,kafka-1:9092,kafka-2:9092").split(",")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS").split(",")
 
-CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "clickhouse-node1")
-CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT", "9000"))
+CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST")
+CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT"))
 
 
 with LOG_CONFIG_DIR.open("r") as log_fin:
