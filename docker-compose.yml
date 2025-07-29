@@ -90,10 +90,10 @@ services:
     networks:
       - clickhouse-net
   
-  fastapi-app:
+  actions-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.api
     ports:
       - "8000:8000"
     environment:
@@ -113,6 +113,26 @@ services:
       - clickhouse-net
     restart: always
 
+
+  kafka-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - DEFAULT_TOPICS=track,ad
+      - CLICKHOUSE_HOST=clickhouse-node1
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DB=actions
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+      - clickhouse-node1
+    networks:
+      - kafka-net
+      - clickhouse-net
+    restart: always
 
 networks:
   kafka-net:

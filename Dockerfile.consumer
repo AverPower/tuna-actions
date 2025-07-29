@@ -1,0 +1,15 @@
+FROM python:3.10-slim-buster
+
+WORKDIR /consumer
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY consumer/. .
+
+COPY app/models.py .
+COPY app/logging_config.yml .
+COPY app/storage.py .
+
+CMD ["python3", "main.py"]
