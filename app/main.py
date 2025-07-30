@@ -7,7 +7,7 @@ import uvicorn
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Query
 from models import PopularTrack, TrackEvent, TrackStat
-from producer import get_producer
+from producer import get_producer, KafkaProducer
 from storage import Storage, get_db_client
 
 BASE_DIR = Path(__name__).parent
@@ -81,14 +81,14 @@ def get_user_top_tracks(
 )
 def create_track_event(
     track_event: TrackEvent,
-    producer: Depends(get_producer)
+    producer: KafkaProducer = Depends(get_producer)
 ) -> dict:
-    track_data = track_event.model_dump()
+    track_data = track_event.model_dump_json()
     try:
         future = producer.send(
             topic="track",
             value=track_data,
-            key=track_data.user_id
+            key=str(track_event.user_id)
         )
         future.get(timeout=1)
         _msg = f"Message sent to track topic : {track_data}"
