@@ -2,39 +2,28 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
-// export const options = {
-//     stages: [
-//         { duration: '30s', target: 50 },  // постепенно увеличиваем нагрузку до 50 пользователей
-//         { duration: '1m', target: 50 },   // держим нагрузку на уровне 50 пользователей
-//         { duration: '30s', target: 100 }, // увеличиваем до 100 пользователей
-//         { duration: '1m', target: 100 },  // держим нагрузку на уровне 100 пользователей
-//         { duration: '30s', target: 0 },    // постепенно снижаем нагрузку
-//     ],
-//     thresholds: {
-//         http_req_duration: ['p(95)<500'], // 95% запросов должны выполняться быстрее 500ms
-//     },  
-// };
-
 export const options = {
-    scenarios: {
-      stress_test: {
-        executor: 'ramping-arrival-rate',
-        startRate: 500, // Начальный RPS
-        timeUnit: '1s',
-        stages: [
-          { duration: '30s', target: 2500 }, 
-          { duration: '1m', target: 2500 },
-          { duration: '30s', target: 0 },
-        ],
-        preAllocatedVUs: 10,
-        maxVUs: 50,
-      },
+  discardResponseBodies: true,
+  scenarios: {
+    contacts: {
+      executor: 'constant-arrival-rate',
+
+      duration: '30s',
+
+      rate: 2500,
+
+      timeUnit: '1s',
+
+      preAllocatedVUs: 200,
+
+      maxVUs: 3000,
     },
-    thresholds: {
-        http_req_failed: ['rate<0.01'], // Менее 1% ошибок
-        http_req_duration: ['p(95)<500'], // 95% запросов должны отвечать быстрее 500 мс
-    },
-  };
+  },
+  thresholds: {
+    http_req_failed: ['rate<0.01'],
+    http_req_duration: ['p(95)<500'],
+  },
+};
 
 const BASE_URL = 'http://localhost:8000';
 
