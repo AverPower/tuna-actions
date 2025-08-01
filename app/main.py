@@ -9,7 +9,7 @@ import yaml
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
 from models import PopularTrack, TrackEvent, TrackStat
-from producer import KafkaProducer, get_producer
+from producer import AIOKafkaProducer, get_producer
 from storage import Storage, get_db_client
 
 load_dotenv(".env")
@@ -93,15 +93,14 @@ def get_user_top_tracks(
 
 
 @app.post("/tracks", summary="Создать событие типа _Трек_", tags=["Tracks"])
-def create_track_event(
-    track_event: TrackEvent, producer: KafkaProducer = Depends(get_producer)
+async def create_track_event(
+    track_event: TrackEvent, producer: AIOKafkaProducer = Depends(get_producer)
 ) -> dict:
     track_data = track_event.model_dump_json()
     try:
-        future = producer.send(
+        producer.send_and_wait(
             topic="track", value=track_data, key=str(track_event.user_id)
         )
-        future.get(timeout=1)
         _msg = f"Message sent to track topic : {track_data}"
         logger.info(_msg)
         return {"status": "success", "message": "Data sent to Kafka"}
