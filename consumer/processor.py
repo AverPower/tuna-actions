@@ -2,7 +2,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 
-from kafka import KafkaConsumer
+from aiokafka import AIOKafkaConsumer
 from models import AdEvent, TrackEvent
 from storage import Storage
 
@@ -15,56 +15,75 @@ class MessageHandler(ABC):
         self.table_name = table_name
 
     @abstractmethod
-    def handle(self, message: str, storage: Storage) -> None: ...
+    async def handle(self, message: str, storage: Storage) -> None: ...
 
 
 class TrackHandler(MessageHandler):
-    def handle(self, message: str, storage: Storage) -> None:
+    async def handle(self, message: str, storage: Storage) -> None:
         try:
             track_event = TrackEvent(**json.loads(message))
             _msg = f"Got track message with id {track_event.action_id}"
             logger.debug(_msg)
-            storage.insert_row(track_event.model_dump(), self.table_name)
+            async with storage as db:
+                await db.insert_row(track_event.model_dump(), self.table_name)
         except Exception as err:
             _msg = f"Problem with message strucure: {message} - {err}"
             logger.error(_msg)
 
 
 class AdHandler(MessageHandler):
-    def handle(self, message: str, storage: Storage) -> None:
+    async def handle(self, message: str, storage: Storage) -> None:
         try:
             ad_event = AdEvent(**json.loads(message))
             _msg = f"Got ad message with id {ad_event.action_id}"
             logger.debug(_msg)
-            storage.insert_row(ad_event.model_dump(), self.table_name)
+            async with storage as db:
+                await db.insert_row(ad_event.model_dump(), self.table_name)
         except Exception as err:
             _msg = f"Problem with message strucure: {message} - {err}"
             logger.error(_msg)
 
 
 class ActionProcessor:
-    def __init__(self, consumer: KafkaConsumer, storage: Storage) -> None:
+    def __init__(self, consumer: AIOKafkaConsumer, storage: Storage) -> None:
         self.consumer = consumer
         self.handlers: dict[str, MessageHandler] = {}
         self.storage = storage
+        self.running = False
 
-    def register_handler(self, handler: MessageHandler) -> None:
+    async def register_handler(self, handler: MessageHandler) -> None:
         try:
             self.handlers[handler.topic_name] = handler
-            self.consumer.subscribe(list(self.handlers.keys()))
+            await self.consumer.subscribe(list(self.handlers.keys()))
+            _msg = f"Successfully registered handler for topic {handler.topic_name}"
+            logger.info(_msg)
         except Exception as err:
             _msg = f"Could not register handler {handler} for topic {handler.topic_name} : {err}"
-            logger.error(_msg)
+            logger.error(_msg, exc_info=True)
+            raise
 
-    def run(self) -> None:
+    async def run(self) -> None:
+        self.running = True
         try:
             for message in self.consumer:
+                if not self._running:
+                    break
                 if message.topic in self.handlers:
-                    self.handlers[message.topic].handle(
-                        message.value.decode("utf-8"), self.storage
-                    )
+                    try:
+                        await self.handlers[message.topic].handle(
+                            message.value.decode("utf-8"), self.storage
+                        )
+                    except Exception as handler_err:
+                        _msg = f"Error processing message from topic {message.topic}: {handler_err}"
+                        logger.error(_msg, exc_info=True)
         except Exception as err:
             _msg = f"Consumer having problems {err} and shutting down..."
             logger.error(_msg)
         finally:
-            self.consumer.close()
+            self._running = False
+            await self.consumer.stop()
+            logger.info("Consumer stopped successfully")
+
+    async def stop(self) -> None:
+        self._running = False
+        await self.consumer.stop()

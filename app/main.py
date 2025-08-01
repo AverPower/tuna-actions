@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -10,7 +11,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
 from models import PopularTrack, TrackEvent, TrackStat
 from producer import AIOKafkaProducer, get_producer
-from storage import Storage, get_db_client
+from storage import ClickHouseStorage, get_db_client
 
 load_dotenv(".env")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -57,19 +58,21 @@ app = FastAPI(
     summary="Популярные треки",
     tags=["Tracks"],
 )
-def get_popular_tracks_last_days(
+async def get_popular_tracks_last_days(
     days: int = Query(7, description="Период в днях"),
-    db: Storage = Depends(get_db_client),
+    storage: ClickHouseStorage = Depends(get_db_client),
 ) -> list[PopularTrack]:
-    rows = db.get_poular_tracks(days)
+    async with storage as db:
+        rows = db.get_poular_tracks(days)
     if rows is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return [PopularTrack(track_id=row[0], play_count=row[1]) for row in rows]
 
 
 @app.get("/tracks/{track_id}/stats", summary="Статистика по треку", tags=["Tracks"])
-def get_track_stats(track_id: UUID, db: Storage = Depends(get_db_client)) -> TrackStat:
-    row = db.get_track_stats(track_id)
+async def get_track_stats(track_id: UUID, storage: ClickHouseStorage = Depends(get_db_client)) -> TrackStat:
+    async with storage as db:
+        row = await db.get_track_stats(track_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Item not found")
     row = row[0]
@@ -83,10 +86,11 @@ def get_track_stats(track_id: UUID, db: Storage = Depends(get_db_client)) -> Tra
     summary="Самые прослушиваемые треки пользователя",
     tags=["Tracks"],
 )
-def get_user_top_tracks(
-    user_id: UUID, limit: int = Query(5, le=50), db: Storage = Depends(get_db_client)
+async def get_user_top_tracks(
+    user_id: UUID, limit: int = Query(5, le=50), storage: ClickHouseStorage = Depends(get_db_client)
 ) -> list[PopularTrack]:
-    rows = db.get_user_top_tracks(user_id, limit)
+    async with storage as db:
+        rows = await db.get_user_top_tracks(user_id, limit)
     if rows is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return [PopularTrack(track_id=row[0], play_count=row[1]) for row in rows]
@@ -110,7 +114,13 @@ async def create_track_event(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-if __name__ == "__main__":
+async def main():
     clickhouse_storage = get_db_client()
-    clickhouse_storage.create_tables()
+    async with clickhouse_storage as db:
+        await db.create_db()
+        await db.create_tables()
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

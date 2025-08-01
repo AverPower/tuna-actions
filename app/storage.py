@@ -1,15 +1,16 @@
 import logging
 import os
 from abc import ABC, abstractmethod
+from typing import Optional
 
-from clickhouse_driver import Client
+import aiochclient
+from aiohttp import ClientSession
 
 DEFAULT_CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST")
 DEFAULT_CLICKHOUSE_PORT = os.getenv("CLICKHOUSE_PORT")
 DEFAULT_CLICKHOUSE_DB = os.getenv("CLICKHOUSE_DB")
 
 logger = logging.getLogger(__name__)
-
 
 class Storage(ABC):
 
@@ -18,35 +19,76 @@ class Storage(ABC):
         ...
 
     @abstractmethod
-    def insert_row(self, data: dict, table_name: str)-> None:
+    async def insert_row(self, data: dict, table_name: str)-> None:
+        ...
+
+    @abstractmethod
+    async def __aenter__(self):
+        ...
+
+    @abstractmethod
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         ...
 
 
 class ClickHouseStorage(Storage):
     def __init__(self, host: str, db_name: str, port: str) -> None:
-        self.client = Client(host=host, port=port)
-        self.create_db()
-        self.client = Client(host=host, database=db_name, port=port)
+        self.host = host
+        self.port = port
+        self.url = f'http://{self.host}:{self.port}'
+        self.db_name = db_name
+        self._session = None
+        self._client = None
 
-    def insert_row(self, data: dict, table_name: str) -> None:
+    async def __aenter__(self):
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
+    async def connect(self) -> None:
+        self._session = ClientSession()
+        self._client = aiochclient.Client(
+            self._session,
+            url=self.url,
+            database=self.db_name
+        )
+
+    async def close(self) -> None:
+        if self._session:
+            await self._session.close()
+            self._session = None
+            self._client = None
+
+    async def insert_row(self, data: dict, table_name: str) -> None:
+
         columns = ", ".join(data.keys())
-        insert_data = [tuple(data.values())]
-        output = self.client.execute(
-            f"INSERT INTO {table_name} ({columns}) VALUES",
-            insert_data
-        )
-        logger.debug(output)
+        values = [tuple(data.values())]
+        query = f"INSERT INTO {table_name} ({columns}) VALUES {values}"
+        try:
+            await self._client.execute(query)
+            _msg = f"Inserted row into {table_name}"
+            logger.debug(_msg)
+        except Exception as e:
+            _msg = f"Error inserting row: {e}"
+            logger.error(_msg, exc_info=True)
+            raise
 
 
-    def create_db(self) -> None:
-        print(
-            self.client.execute(
-                "CREATE DATABASE IF NOT EXISTS actions ON CLUSTER action_cluster"
-            )
-        )
+    async def create_db(self) -> None:
+        try:
+            query = "CREATE DATABASE IF NOT EXISTS actions ON CLUSTER action_cluster"
+            await self._client.execute(query)
+            logger.debug("Created DB")
+        except Exception as e:
+            _msg = f"Error creating db: {e}"
+            logger.error(_msg, exc_info=True)
+            raise
 
-    def create_tables(self):
-        result = self.client.execute("""
+    async def create_tables(self):
+        try:
+            query_ads = """
             CREATE TABLE IF NOT EXISTS actions.ads ON CLUSTER action_cluster
             (
                 action_id UUID,
@@ -62,10 +104,9 @@ class ClickHouseStorage(Storage):
             ENGINE = MergeTree()
             PARTITION BY toYYYYMM(action_time)
             ORDER BY (user_id, action_time, action_type);
-            """)
-        _msg = f"TABLE CREATION {result}"
-        logger.debug(_msg)
-        result = self.client.execute("""
+            """
+            await self._client.execute(query_ads)
+            query_tracks = """
             CREATE TABLE IF NOT EXISTS actions.tracks ON CLUSTER action_cluster
             (
                 action_id UUID,
@@ -88,11 +129,16 @@ class ClickHouseStorage(Storage):
             ENGINE = MergeTree()
             PARTITION BY toYYYYMM(action_time)
             ORDER BY (user_id, action_time, action_type);
-            """)
-        _msg = f"TABLE CREATION {result}"
-        logger.debug(_msg)
+            """
+            await self._client.execute(query_tracks)
+            logger.debug("Created tables")
+        except Exception as e:
+            _msg = f"Error creating tables: {e}"
+            logger.error(_msg, exc_info=True)
+            raise
 
-    def get_poular_tracks(self, days: int):
+
+    async def get_poular_tracks(self, days: int):
         query = """
         SELECT
             track_id,
@@ -105,7 +151,7 @@ class ClickHouseStorage(Storage):
         LIMIT 10;
         """
         try:
-            rows = self.client.execute(
+            rows = await self._client.execute(
                 query,
                 {"days": days}
             )
@@ -116,7 +162,8 @@ class ClickHouseStorage(Storage):
         finally:
             return rows
 
-    def get_track_stats(self, track_id: str):
+
+    async def get_track_stats(self, track_id: str):
         query = """
         SELECT
             count() as total_plays,
@@ -127,7 +174,7 @@ class ClickHouseStorage(Storage):
             AND action_type = 'play'
         """
         try:
-            rows = self.client.execute(
+            rows = await self._client.execute(
                 query,
                 {"track_id": track_id}
             )
@@ -138,7 +185,7 @@ class ClickHouseStorage(Storage):
         finally:
             return rows
 
-    def get_user_top_tracks(self, user_id: str, limit: int):
+    async def get_user_top_tracks(self, user_id: str, limit: int):
         query = """
         SELECT
             track_id,
@@ -151,7 +198,7 @@ class ClickHouseStorage(Storage):
         """
 
         try:
-            rows = self.client.execute(
+            rows = await self._client.execute(
                 query,
                 {"user_id": user_id, "limit": limit}
             )
@@ -162,23 +209,22 @@ class ClickHouseStorage(Storage):
         finally:
             return rows
 
-    def select_all(self):
-        print(self.client.execute("SELECT uniq(user_id) FROM tracks"))
-        print(self.client.execute("SELECT COUNT(*) FROM ads"))
+
+    async def select_test(self):
+        query_test_1 = "SELECT uniq(user_id) FROM tracks"
+        query_test_2 = "SELECT COUNT(*) FROM ads"
+        try:
+            await self._client.execute(query_test_1)
+            await self._client.execute(query_test_2)
+        except Exception as err:
+            _msg = f"Error testing: {err}"
+            logger.error(_msg, exc_info=True)
 
 
 
-def get_db_client() -> ClickHouseStorage:
+async def get_db_client() -> Optional[ClickHouseStorage]:
     return ClickHouseStorage(
         host=DEFAULT_CLICKHOUSE_HOST,
         port=DEFAULT_CLICKHOUSE_PORT,
         db_name=DEFAULT_CLICKHOUSE_DB
-        )
-
-
-if __name__ == "__main__":
-    try:
-        db = get_db_client()
-        db.select_all()
-    except Exception as err:
-        print(err)
+    )
