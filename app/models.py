@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import UUID4, BaseModel, field_serializer
 
@@ -29,8 +29,12 @@ class TrackEvent(BaseAction):
     action_type: TrackEventType
     track_id: UUID4
     recommended: bool = False
-    playlist_id: Optional[UUID4] = None
-    duration: Optional[int] = None
+    playlist_id: Optional[UUID4] | Literal["NULL"] = None
+    duration: Optional[int] | Literal["NULL"] = None 
+
+    @field_serializer("playlist_id", "duration", when_used='json')
+    def serialize_optional(self, value: Optional[str]):
+        return value if value is not None else 'NULL'
 
 
 class AdEventType(str, Enum):

@@ -1,5 +1,5 @@
 import asyncio
-import logging
+from logging import config, getLogger
 import os
 from pathlib import Path
 
@@ -17,9 +17,10 @@ TOPICS = os.getenv("DEFAULT_TOPICS").split(",")
 
 
 with LOG_CONFIG_DIR.open("r") as log_fin:
-    config = yaml.safe_load(log_fin)
-logging.config.dictConfig(config)
-logger = logging.getLogger(__name__)
+    file_config = yaml.safe_load(log_fin)
+
+config.dictConfig(file_config)
+logger = getLogger(__name__)
 
 
 async def main() -> None:
