@@ -2,13 +2,17 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, field_serializer
 
 
 class BaseAction(BaseModel):
     action_id: UUID4
     action_time: datetime
     user_id: UUID4
+
+    @field_serializer('action_time', when_used='json')
+    def serialize_dt(self, dt) -> str:
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
 
 
 class TrackEventType(str, Enum):

@@ -32,6 +32,9 @@ class Storage(ABC):
 
 
 class ClickHouseStorage(Storage):
+
+    _db_created = False
+
     def __init__(self, host: str, db_name: str, port: str) -> None:
         self.host = host
         self.port = port
@@ -48,8 +51,13 @@ class ClickHouseStorage(Storage):
         await self.close()
 
     async def connect(self) -> None:
+
+        if not ClickHouseStorage._db_created:
+            await self._create_db()
+            ClickHouseStorage._db_created = True
+
         self._session = ClientSession()
-        self._client = aiochclient.Client(
+        self._client = aiochclient.ChClient(
             self._session,
             url=self.url,
             database=self.db_name
@@ -64,7 +72,7 @@ class ClickHouseStorage(Storage):
     async def insert_row(self, data: dict, table_name: str) -> None:
 
         columns = ", ".join(data.keys())
-        values = [tuple(data.values())]
+        values = tuple(data.values())
         query = f"INSERT INTO {table_name} ({columns}) VALUES {values}"
         try:
             await self._client.execute(query)
@@ -76,10 +84,13 @@ class ClickHouseStorage(Storage):
             raise
 
 
-    async def create_db(self) -> None:
+    async def _create_db(self) -> None:
         try:
+            temp_session = ClientSession()
+            temp_client = aiochclient.ChClient(temp_session, url=self.url)
             query = "CREATE DATABASE IF NOT EXISTS actions ON CLUSTER action_cluster"
-            await self._client.execute(query)
+            await temp_client.execute(query)
+            await temp_session.close()
             logger.debug("Created DB")
         except Exception as e:
             _msg = f"Error creating db: {e}"

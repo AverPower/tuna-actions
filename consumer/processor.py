@@ -25,7 +25,7 @@ class TrackHandler(MessageHandler):
             _msg = f"Got track message with id {track_event.action_id}"
             logger.debug(_msg)
             async with storage as db:
-                await db.insert_row(track_event.model_dump(), self.table_name)
+                await db.insert_row(track_event.model_dump(mode="json"), self.table_name)
         except Exception as err:
             _msg = f"Problem with message strucure: {message} - {err}"
             logger.error(_msg)
@@ -38,7 +38,7 @@ class AdHandler(MessageHandler):
             _msg = f"Got ad message with id {ad_event.action_id}"
             logger.debug(_msg)
             async with storage as db:
-                await db.insert_row(ad_event.model_dump(), self.table_name)
+                await db.insert_row(ad_event.model_dump(mode="json"), self.table_name)
         except Exception as err:
             _msg = f"Problem with message strucure: {message} - {err}"
             logger.error(_msg)
@@ -49,12 +49,12 @@ class ActionProcessor:
         self.consumer = consumer
         self.handlers: dict[str, MessageHandler] = {}
         self.storage = storage
-        self.running = False
+        self._running = False
 
     async def register_handler(self, handler: MessageHandler) -> None:
         try:
             self.handlers[handler.topic_name] = handler
-            await self.consumer.subscribe(list(self.handlers.keys()))
+            self.consumer.subscribe(list(self.handlers.keys()))
             _msg = f"Successfully registered handler for topic {handler.topic_name}"
             logger.info(_msg)
         except Exception as err:
@@ -63,9 +63,10 @@ class ActionProcessor:
             raise
 
     async def run(self) -> None:
-        self.running = True
+        self._running = True
         try:
-            for message in self.consumer:
+            await self.consumer.start()
+            async for message in self.consumer:
                 if not self._running:
                     break
                 if message.topic in self.handlers:

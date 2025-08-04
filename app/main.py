@@ -102,7 +102,7 @@ async def create_track_event(
 ) -> dict:
     track_data = track_event.model_dump_json()
     try:
-        producer.send_and_wait(
+        await producer.send_and_wait(
             topic="track", value=track_data, key=str(track_event.user_id)
         )
         _msg = f"Message sent to track topic : {track_data}"
@@ -115,12 +115,11 @@ async def create_track_event(
 
 
 async def main():
-    clickhouse_storage = get_db_client()
+    clickhouse_storage = await get_db_client()
     async with clickhouse_storage as db:
-        await db.create_db()
         await db.create_tables()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+    uvicorn.run(app, host="0.0.0.0", port=8000)
