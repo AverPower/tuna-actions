@@ -40,6 +40,9 @@ async def main() -> None:
     ]
     clickhouse_storage = await get_db_client()
 
+    async with clickhouse_storage as db:
+        await db.create_tables()
+
     action_processor = ActionProcessor(consumer=consumer, storage=clickhouse_storage)
     for handler in handlers:
         await action_processor.register_handler(handler)

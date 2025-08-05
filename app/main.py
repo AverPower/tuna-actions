@@ -1,11 +1,9 @@
-import asyncio
 import logging
 import os
 from pathlib import Path
 from uuid import UUID
 
 import sentry_sdk
-import uvicorn
 import yaml
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -112,14 +110,3 @@ async def create_track_event(
         _msg = f"Error while sending to Kafka: {str(e)}"
         logger.error(_msg)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-async def main():
-    clickhouse_storage = await get_db_client()
-    async with clickhouse_storage as db:
-        await db.create_tables()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-    uvicorn.run(app, host="0.0.0.0", port=8000)
