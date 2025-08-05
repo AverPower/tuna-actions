@@ -150,22 +150,23 @@ class ClickHouseStorage(Storage):
 
 
     async def get_poular_tracks(self, days: int):
-        query = """
+        query = f"""
         SELECT
             track_id,
             count() as play_count
         FROM tracks
         WHERE action_type = 'play'
-        AND action_time >= now() - interval %(days)s day
+        AND action_time >= now() - interval {days} day
         GROUP BY track_id
         ORDER BY play_count DESC
-        LIMIT 10;
+        LIMIT 10
         """
         try:
-            rows = await self._client.execute(
-                query,
-                {"days": days}
+            logger.error(f"WHAT THE EROROR: {query}")
+            rows = await self._client.fetch(
+                query
             )
+            logger.error(f"WHAT THE EROROR: {query} {rows}")
         except Exception as err:
             _msg = f"Get poular tracks error {err}"
             logger.error(_msg)
@@ -175,19 +176,18 @@ class ClickHouseStorage(Storage):
 
 
     async def get_track_stats(self, track_id: str):
-        query = """
+        query = f"""
         SELECT
             count() as total_plays,
             toInt32(avg(duration)) as avg_duration,
             uniq(user_id) as unique_users
         FROM tracks
-        WHERE track_id = %(track_id)s
+        WHERE track_id = '{track_id}' 
             AND action_type = 'play'
         """
         try:
-            rows = await self._client.execute(
-                query,
-                {"track_id": track_id}
+            rows = await self._client.fetch(
+                query
             )
         except Exception as err:
             _msg = f"Get track stats error {err}"
@@ -197,22 +197,19 @@ class ClickHouseStorage(Storage):
             return rows
 
     async def get_user_top_tracks(self, user_id: str, limit: int):
-        query = """
+        query = f"""
         SELECT
             track_id,
             count() as plays
         FROM tracks
-        WHERE user_id = %(user_id)s
+        WHERE user_id = '{user_id}'
         GROUP BY track_id
         ORDER BY plays DESC
-        LIMIT %(limit)s
+        LIMIT {limit}
         """
 
         try:
-            rows = await self._client.execute(
-                query,
-                {"user_id": user_id, "limit": limit}
-            )
+            rows = await self._client.fetch(query)
         except Exception as err:
             _msg = f"Get user top tracks error {err}"
             logger.error(_msg)

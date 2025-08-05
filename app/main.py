@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import UUID
 
@@ -8,7 +9,7 @@ import yaml
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
 from models import PopularTrack, TrackEvent, TrackStat
-from producer import AIOKafkaProducer, get_producer
+from producer import AIOKafkaProducer, get_kafka_producer
 from storage import ClickHouseStorage, get_db_client
 
 load_dotenv(".env")
@@ -45,9 +46,32 @@ sentry_sdk.init(
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        app.state.kafka_producer = await get_kafka_producer()
+        await app.state.kafka_producer.start()
+        app.state.storage = await get_db_client()
+
+        yield
+
+        await app.state.kafka_producer.stop()
+    except Exception as err:
+        logger.error(f"WHAT the {err}")
+
+
+async def get_producer() -> AIOKafkaProducer:
+    return app.state.kafka_producer
+
+
+async def get_storage() -> ClickHouseStorage:
+    return app.state.storage
+
+
 app = FastAPI(
     title="Action Service for Tuna Music",
     description="API для выполнения аналитических запросов к ClickHouse",
+    lifespan=lifespan,
 )
 
 
@@ -58,17 +82,19 @@ app = FastAPI(
 )
 async def get_popular_tracks_last_days(
     days: int = Query(7, description="Период в днях"),
-    storage: ClickHouseStorage = Depends(get_db_client),
+    storage: ClickHouseStorage = Depends(get_storage),
 ) -> list[PopularTrack]:
     async with storage as db:
-        rows = db.get_poular_tracks(days)
+        rows = await db.get_poular_tracks(days)
     if rows is None:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(status_code=404, detail=f"Item not found")
     return [PopularTrack(track_id=row[0], play_count=row[1]) for row in rows]
 
 
 @app.get("/tracks/{track_id}/stats", summary="Статистика по треку", tags=["Tracks"])
-async def get_track_stats(track_id: UUID, storage: ClickHouseStorage = Depends(get_db_client)) -> TrackStat:
+async def get_track_stats(
+    track_id: UUID, storage: ClickHouseStorage = Depends(get_storage)
+) -> TrackStat:
     async with storage as db:
         row = await db.get_track_stats(track_id)
     if row is None:
@@ -85,7 +111,9 @@ async def get_track_stats(track_id: UUID, storage: ClickHouseStorage = Depends(g
     tags=["Tracks"],
 )
 async def get_user_top_tracks(
-    user_id: UUID, limit: int = Query(5, le=50), storage: ClickHouseStorage = Depends(get_db_client)
+    user_id: UUID,
+    limit: int = Query(5, le=50),
+    storage: ClickHouseStorage = Depends(get_storage),
 ) -> list[PopularTrack]:
     async with storage as db:
         rows = await db.get_user_top_tracks(user_id, limit)
