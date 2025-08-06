@@ -14,7 +14,7 @@ export const options = {
 
       timeUnit: '1s',
 
-      preAllocatedVUs: 1000,
+      preAllocatedVUs: 3000,
 
       maxVUs: 3000,
     },
@@ -25,7 +25,7 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://localhost:80';
+const BASE_URL = 'http://localhost:8000';
 
 export default function () {
 

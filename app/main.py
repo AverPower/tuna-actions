@@ -31,18 +31,10 @@ logger = logging.getLogger(__name__)
 
 sentry_sdk.init(
     dsn=SENTRY_DSN,
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for tracing.
-    traces_sample_rate=1.0,
-    # Set profile_session_sample_rate to 1.0 to profile 100%
-    # of profile sessions.
-    profile_session_sample_rate=1.0,
-    # Set profile_lifecycle to "trace" to automatically
-    # run the profiler on when there is an active transaction
-    profile_lifecycle="trace",
+    send_default_pii=False,
+    traces_sample_rate=0.01,
+    profile_session_sample_rate=0.001,
+    # profile_lifecycle="trace",
 )
 
 
@@ -128,7 +120,7 @@ async def create_track_event(
 ) -> dict:
     track_data = track_event.model_dump_json()
     try:
-        await producer.send_and_wait(
+        await producer.send(
             topic="track", value=track_data, key=str(track_event.user_id)
         )
         _msg = f"Message sent to track topic : {track_data}"
@@ -138,3 +130,10 @@ async def create_track_event(
         _msg = f"Error while sending to Kafka: {str(e)}"
         logger.error(_msg)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# @app.post("/tracks", summary="Создать событие типа _Трек_", tags=["Tracks"])
+# async def create_track_event(
+#     track_event: TrackEvent, producer: AIOKafkaProducer = Depends(get_producer)
+# ):
+#     return None
