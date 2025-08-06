@@ -130,10 +130,3 @@ async def create_track_event(
         _msg = f"Error while sending to Kafka: {str(e)}"
         logger.error(_msg)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# @app.post("/tracks", summary="Создать событие типа _Трек_", tags=["Tracks"])
-# async def create_track_event(
-#     track_event: TrackEvent, producer: AIOKafkaProducer = Depends(get_producer)
-# ):
-#     return None
