@@ -1,19 +1,17 @@
 services:
 
-  # nginx:
-  #   image: nginx:alpine
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"  # Опционально для HTTPS
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-  #     - ./nginx/conf.d:/etc/nginx/conf.d
-  #   depends_on:
-  #     - actions-api
-  #   networks:
-  #     - kafka-net
-  #     - clickhouse-net
 
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - actions-api
+    networks:
+      - kafka-net
+      - clickhouse-net
 
   kafka-0:
     image: bitnami/kafka:3.4
