@@ -19,7 +19,7 @@ class Storage(ABC):
         ...
 
     @abstractmethod
-    async def insert_row(self, data: dict, table_name: str)-> None:
+    async def insert_rows(self, rows: list[dict], table_name: str) -> None:
         ...
 
     @abstractmethod
@@ -69,20 +69,38 @@ class ClickHouseStorage(Storage):
             self._session = None
             self._client = None
 
-    async def insert_row(self, data: dict, table_name: str) -> None:
+    # async def insert_row(self, data: dict, table_name: str) -> None:
 
-        columns = ", ".join(data.keys())
-        values = tuple(data.values())
-        query = f"INSERT INTO {table_name} ({columns}) VALUES {values}"
+    #     columns = ", ".join(data.keys())
+    #     values = tuple(data.values())
+    #     query = f"INSERT INTO {table_name} ({columns}) VALUES {values}"
+    #     try:
+    #         await self._client.execute(query)
+    #         _msg = f"Inserted row into {table_name}"
+    #         logger.debug(_msg)
+    #     except Exception as e:
+    #         _msg = f"Error inserting row: {e}"
+    #         logger.error(_msg, exc_info=True)
+    #         raise
+
+
+    async def insert_rows(self, rows: list[dict], table_name: str) -> None:
         try:
+            columns = ", ".join(rows[0].keys())
+
+            all_values = [tuple(row.values()) for row in rows ]
+            parsed_values = ",".join(f"{value}" for value in all_values)
+
+            query = f"INSERT INTO {table_name} ({columns}) VALUES {parsed_values}"
+
             await self._client.execute(query)
-            _msg = f"Inserted row into {table_name}"
+            _msg = f"Inserted {len(rows)} rows into {table_name}"
             logger.debug(_msg)
+
         except Exception as e:
-            _msg = f"Error inserting row: {e}"
+            _msg = f"Error inserting batch to {table_name}: {e} query: {query}"
             logger.error(_msg, exc_info=True)
             raise
-
 
     async def _create_db(self) -> None:
         try:
