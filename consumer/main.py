@@ -32,6 +32,7 @@ async def main() -> None:
         auto_offset_reset="earliest",
         enable_auto_commit=True,
         auto_commit_interval_ms=1000,
+        group_id="action_group_consumer"
     )
 
     handlers = [

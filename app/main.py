@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import UUID
 
-import sentry_sdk
 import yaml
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -13,7 +12,6 @@ from producer import AIOKafkaProducer, get_kafka_producer
 from storage import ClickHouseStorage, get_db_client
 
 load_dotenv(".env")
-SENTRY_DSN = os.getenv("SENTRY_DSN")
 
 BASE_DIR = Path(__name__).parent
 LOG_CONFIG_DIR = BASE_DIR / "logging_config.yml"
@@ -27,15 +25,6 @@ with LOG_CONFIG_DIR.open("r") as log_fin:
     config = yaml.safe_load(log_fin)
 logging.config.dictConfig(config)
 logger = logging.getLogger(__name__)
-
-
-sentry_sdk.init(
-    dsn=SENTRY_DSN,
-    send_default_pii=False,
-    traces_sample_rate=0.01,
-    profile_session_sample_rate=0.001,
-    # profile_lifecycle="trace",
-)
 
 
 @asynccontextmanager

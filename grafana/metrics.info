@@ -1,0 +1,11 @@
+Grafana Dashboard ID: 7589, name: Kafka Exporter Overview.
+
+https://github.com/danielqsj/kafka_exporter?tab=readme-ov-file#metrics
+
+sum(rate(kafka_topic_partition_current_offset{topic="track"}[1m])) by (topic)
+
+sum(kafka_consumergroup_lag{topic="track"}) by (consumergroup, topic) 
+
+sum(delta(kafka_topic_partition_current_offset{topic="track"}[5m])/5) by (topic)
+
+sum(delta(kafka_consumergroup_current_offset{topic="track"}[5m])/5) by (consumergroup, topic)
