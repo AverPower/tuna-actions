@@ -144,6 +144,25 @@ services:
       - clickhouse-net
     restart: always
 
+  actions-api-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - CLICKHOUSE_HOST=clickhouse-node1
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DB=actions
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+      - clickhouse-node1
+    networks:
+      - kafka-net
+      - clickhouse-net
+    restart: always
+
 
   kafka-consumer:
     build:
