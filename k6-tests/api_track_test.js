@@ -25,7 +25,7 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://localhost:80';
+const BASE_URL = 'http://localhost:8000';
 
 export default function () {
 

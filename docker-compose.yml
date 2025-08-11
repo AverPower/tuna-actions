@@ -1,18 +1,5 @@
 services:
 
-
-  nginx:
-    image: nginx:latest
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - actions-api
-    networks:
-      - kafka-net
-      - clickhouse-net
-
   kafka-0:
     image: bitnami/kafka:3.4
     ports:
@@ -108,8 +95,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - CLICKHOUSE_HOST=clickhouse-node1
