@@ -15,8 +15,7 @@ class MessageHandler(ABC):
         self.topic_name = topic_name
         self.table_name = table_name
         self.batch: list[dict] = []
-        self.batch_size = 1000
-        self.batch_timeout = 5.0
+        self.batch_size = 10000
 
     @abstractmethod
     async def handle(self, message: str, storage: Storage) -> None: ...
@@ -94,7 +93,7 @@ class ActionProcessor:
 
     async def run(self) -> None:
         self._running = True
-        self._flush_task = asyncio.create_task(self._periodic_flush())
+        # self._flush_task = asyncio.create_task(self._periodic_flush())
 
         try:
             await self.consumer.start()
