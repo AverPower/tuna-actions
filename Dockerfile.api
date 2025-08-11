@@ -1,13 +1,36 @@
-FROM python:3.10-slim-buster
+# Билд стадия
+FROM golang:1.23-alpine AS builder
 
+# Установка зависимостей для сборки
+RUN apk add --no-cache git
+
+# Создаем рабочую директорию внутри /app
 WORKDIR /app
 
-COPY requirements.txt .
+# Копируем только файлы модулей (для оптимизации кэша Docker)
+COPY app/go.mod app/go.sum ./
+RUN go mod download
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Копируем весь исходный код из папки app
+COPY app/ .
 
-COPY app/. .
+# Собираем приложение (предполагается, что main.go в корне app/)
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/test_proj .
 
-EXPOSE 8000
+# Финальная стадия
+FROM alpine:3.18
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Устанавливаем необходимые пакеты
+RUN apk add --no-cache tzdata ca-certificates
+
+# Копируем бинарник из билд стадии
+COPY --from=builder /app/test_proj /usr/local/bin/test_proj
+
+# Создаем рабочую директорию для приложения
+WORKDIR /app
+
+# Открываем порт
+EXPOSE 8080
+
+# Команда запуска
+ENTRYPOINT ["test_proj"]
