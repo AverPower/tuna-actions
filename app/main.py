@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -6,12 +7,14 @@ from uuid import UUID
 
 import yaml
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from models import PopularTrack, TrackEvent, TrackStat
 from producer import AIOKafkaProducer, get_kafka_producer
 from storage import ClickHouseStorage, get_db_client
 
 load_dotenv(".env")
+
+TIMEOUT = 5.0
 
 BASE_DIR = Path(__name__).parent
 LOG_CONFIG_DIR = BASE_DIR / "logging_config.yml"
@@ -109,12 +112,23 @@ async def create_track_event(
 ) -> dict:
     track_data = track_event.model_dump_json()
     try:
-        await producer.send(
-            topic="track", value=track_data, key=str(track_event.user_id)
+        await asyncio.wait_for(
+            producer.send(
+                topic="track", value=track_data, key=str(track_event.user_id)
+            ),
+            timeout=TIMEOUT,
         )
         _msg = f"Message sent to track topic : {track_data}"
         logger.info(_msg)
         return {"status": "success", "message": "Data sent to Kafka"}
+
+    except asyncio.TimeoutError:
+        _msg = f"Kafka producer.send() timed out after {TIMEOUT} seconds"
+        logger.error(_msg)
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Kafka operation timed out",
+        )
     except Exception as e:
         _msg = f"Error while sending to Kafka: {str(e)}"
         logger.error(_msg)
