@@ -1,7 +1,7 @@
 
 ## Результаты
 
-Целевая метрика p(95) < 500 при нагрузочном тестировании RPS = 2500 в течение 60s
+Целевая метрика p(95) < 500ms при нагрузочном тестировании RPS = 2500 в течение 60s
 
 
 |     | Architecture                     | p(95)    | error rate (timeout=5s) | total requests (60s) | kafka lag (peak) | kafka lag solve |
