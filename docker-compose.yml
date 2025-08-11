@@ -1,5 +1,19 @@
 services:
 
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - actions-api-1
+      - actions-api-2
+    networks:
+      - kafka-net
+      - clickhouse-net
+    restart: always
+
   kafka-0:
     image: bitnami/kafka:3.4
     ports:
@@ -91,12 +105,30 @@ services:
     networks:
       - clickhouse-net
   
-  actions-api:
+  actions-api-1:
     build:
       context: .
       dockerfile: Dockerfile.api
-    ports:
-      - "8000:8080"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - CLICKHOUSE_HOST=clickhouse-node1
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DB=actions
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+      - clickhouse-node1
+    networks:
+      - kafka-net
+      - clickhouse-net
+    restart: always
+
+
+  actions-api-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - CLICKHOUSE_HOST=clickhouse-node1
