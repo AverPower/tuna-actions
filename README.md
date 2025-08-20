@@ -4,13 +4,13 @@
 Целевая метрика p(95) < 500ms при нагрузочном тестировании RPS = 2500 в течение 60s
 
 
-|     | Architecture                     | p(95)    | error rate (timeout=5s) | total requests (60s) | kafka lag (peak) | kafka lag solve |
-| --- | -------------------------------- | -------- | ----------------------- | -------------------- | ---------------- | --------------- |
-| 1   | питон + кафка + клик             | $${\color{red}7.55\space s}$$      | 80.27%                  | 34611                | 50               | 1:15            |
-| 2   | питон + 3 кафка + клик           | $${\color{red}7.12\space s}$$      | 72.09%                  | 34064                | 98               | 1:15            |
-| 3   | nginx + 3 питон + кафка + клик   | $${\color{red}5.75\space s}$$     | 18.71%                  | 67855                | 5200             | 1:15            |
-| 4   | nginx + 3 питон + 3 кафка + клик | $${\color{red}5.7\space s}$$       | 12.47%                  | 73708                | 10000            | 1:15            |
-| 5   | go + кафка + клик                | $${\color{green}17.14\space ms}$$  | 0.00%                   | 150001               | 90000            | 2:00            |
-| 6   | go + 3 кафка + клик              | $${\color{green}33.26\space ms}$$  | 0.00%                   | 150001               | 110000           | 2:15            |
-| 7   | nginx + 3 go + 3 кафка + клик    | $${\color{green}45.94\space ms}$$  | 0.00%                   | 150001               | 111000           | 2:30            |
+|     | Architecture                            | p(95)                              | error rate (timeout=5s) | total requests (60s) | kafka lag (peak) | kafka lag solve |
+| --- | --------------------------------------- | ---------------------------------- | ----------------------- | -------------------- | ---------------- | --------------- |
+| 1   | python + kafka + clickhouse             | $${\color{red}5.51\space s}$$      | 60.86%                  | 50533                | 300              | 1:15            |
+| 2   | python + 3 kafka + clickhouse           | $${\color{red}5.54\space s}$$      | 38.79%                  | 55643                | 1115             | 1:00            |
+| 3   | nginx + 3 python + kafka + clickhouse   | $${\color{orange}47.26\space ms}$$ | 0.00%                   | 150000               | 48600            | 1:30            |
+| 4   | nginx + 3 python + 3 kafka + clickhouse | $${\color{orange}49.2\space ms}$$  | 0.00%                   | 150000               | 51300            | 1:30            |
+| 5   | go + kafka + clickhouse                 | $${\color{green}2.16\space ms}$$   | 0.00%                   | 150000               | 48600            | 1:30            |
+| 6   | go + 3 kafka + clickhouse               | $${\color{green}5.68 \space ms}$$  | 0.00%                   | 150000               | 50000            | 1:45            |
+| 7   | nginx + 3 go + 3 kafka + clickhouse     | $${\color{green}1.14\space ms}$$   | 0.00%                   | 150000               | 41300            | 1:15            |
  
